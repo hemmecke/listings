@@ -5517,7 +5517,7 @@
 % \part{Implementation}
 %
 %
-% \CheckSum{12359}
+% \CheckSum{12416}
 %^^A
 %^^A Don't index TeX-primitives.
 %^^A
@@ -10169,10 +10169,42 @@
 % \end{lstkey}
 %
 % \begin{macro}{\lst@ActiveCDefX}
-% Same as |\lst@CDefX| but we both make |#1| active and assign a new catcode.
+% Same as |\lst@CDefX| except for the fact that not all characters of
+% the ending delimiter are assumed to be active.
+% For the recognition of the ending delimiter in |\lst@Escape| we must
+% make sure that the first character in the ending delimiter and all
+% characters that are equal to the first are active, since they will
+% be when the input stream is read in.
+% Other catcodes of the delimiter sequence are not changed, since
+% they must be equal to their original \TeX\ catcodes.
 %    \begin{macrocode}
 \gdef\lst@ActiveCDefX#1{\lst@ActiveCDefX@#1}
-\gdef\lst@ActiveCDefX@#1#2#3{
+\gdef\lst@ActiveCDefX@#1#2#3{\def\lst@arg{}%
+    \lst@ActiveCDefX@@#1{#2}{#3}\relax
+    \expandafter\lst@ActiveCDefX@@@\expandafter#1\lst@arg\relax}
+%    \end{macrocode}
+% The macro |\lst@ActiveCDefX@@| takes the ending delimiter as
+% argument and replaces every character that is equal to |#1| by the
+% same character with an active category code. All the characters from
+% |#2#3| that are thus processed are collected in the list |\lst@arg|.
+%    \begin{macrocode}
+\gdef\lst@ActiveCDefX@@#1#2#3\relax{%
+    \def\lst@next{}%
+    \ifx\@empty#2\@empty
+    \else\ifx#1#2\lccode`\~=`#2\lowercase{\def\@tempa{~}}
+         \else\def\@tempa{#2}\fi
+         \def\lst@next{\lst@ActiveCDefX@@#1#3{}{}\relax}
+         \lst@lExtend\lst@arg\@tempa
+    \fi\lst@next}
+%    \end{macrocode}
+% Finally, we extract |#2| and |#3| from |\lst@arg|, make |#1| active,
+% and pass these parameters to |\lst@CDefIt|.
+%    \begin{macrocode}
+\gdef\lst@ActiveCDefX@@@#1#2\relax{%
+    \ifx\@empty#2\@empty
+        \def\lst@next{\lst@ActiveCDefX@@@@#1{}{}\@empty}\else
+        \def\lst@next{\lst@ActiveCDefX@@@@#1#2\@empty}\fi\lst@next}
+\gdef\lst@ActiveCDefX@@@@#1#2#3\@empty{%
     \catcode`#1\active\lccode`\~=`#1%
     \lowercase{\lst@CDefIt~}{#2}{#3}{}}
 %    \end{macrocode}
